@@ -97,7 +97,7 @@ static void init_introspect_parser(ojParser p) {
   f->close_object = close_object_introspected;
 
   f = &p->funcs[ARRAY_FUN];
-  f->open_object  = open_object_key_introspected;
+  f->open_object  = open_object_introspected;
   f->close_object = close_object_introspected;
 
   f = &p->funcs[OBJECT_FUN];
