@@ -11,3 +11,5 @@
 .rspec_status
 
 *.bundle
+Makefile
+*.o

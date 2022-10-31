@@ -15,8 +15,12 @@ typedef struct _byte_offsets {
 typedef struct _introspect_S {
   struct _usual usual; // inherit all the attributes from `_usual` struct
 
+  // I'd suggest either making a non-pointer or just adding length, current,
+  // and stack directly to IntrospectDelegate. No need to allocate
+  // separately.
   ByteOffsets *byte_offsets;
 
+  void (*delegated_start)(struct _ojParser *p);
   void (*delegated_free_func)(struct _ojParser *p);
   void (*delegated_open_object_func)(struct _ojParser *p);
   void (*delegated_open_object_key_func)(struct _ojParser *p);
@@ -29,6 +33,14 @@ static void dfree(ojParser p) {
   xfree(d->byte_offsets->stack);
   xfree(d->byte_offsets);
   d->delegated_free_func(p);
+}
+
+static void start(ojParser p) {
+    IntrospectDelegate d = (IntrospectDelegate)p->ctx;
+
+    d->delegated_start(p);
+    // Reset to zero so the parser and delegate can be reused.
+    d->byte_offsets->current = 0;
 }
 
 static void ensure_byte_offsets_stack(IntrospectDelegate d) {
@@ -81,7 +93,7 @@ static void close_object_introspected(ojParser p) {
   set_introspection_values(p);
 }
 
-static void init_introspect_parser(ojParser p) {
+static void init_introspect_parser(ojParser p, VALUE ropts) {
   IntrospectDelegate d = ALLOC(struct _introspect_S);
 
   oj_init_usual(p, (Usual)d);
@@ -90,6 +102,15 @@ static void init_introspect_parser(ojParser p) {
   d->delegated_free_func = p->free;
   p->free = &dfree;
 
+  d->delegated_start = p->start;
+  p->start = start;
+
+  // We are cheating with the mark, free, and options functions. Since struct
+  // _usual is the first member of struct _introspect the cast to Usual in the
+  // usual.c mark() function should still work just fine.
+
+  // PCO - do you need the location of sub-objects and arrays or just top
+  // level objects?
   Funcs f = &p->funcs[TOP_FUN];
   d->delegated_open_object_func = f->open_object;
   d->delegated_close_object_func = f->close_object;
@@ -110,6 +131,9 @@ static void init_introspect_parser(ojParser p) {
   d->byte_offsets->current = 0;
   d->byte_offsets->stack   = ALLOC_N(long, BYTE_OFFSETS_STACK_INC_SIZE);
   d->byte_offsets->length  = BYTE_OFFSETS_STACK_INC_SIZE;
+
+  // Process options.
+  oj_parser_set_option(p, ropts);
 }
 
 VALUE oj_get_parser_introspect() {
@@ -117,21 +141,24 @@ VALUE oj_get_parser_introspect() {
   struct _ojParser *p;
   Data_Get_Struct(oj_parser, struct _ojParser, p);
 
-  init_introspect_parser(p);
+  init_introspect_parser(p, Qnil);
 
   rb_gc_register_address(&oj_parser);
 
   return oj_parser;
 }
 
-static VALUE rb_new_introspect_parser() {
+static VALUE rb_new_introspect_parser(VALUE self, VALUE ropts) {
   VALUE oj_parser = oj_parser_new();
   struct _ojParser *p;
   Data_Get_Struct(oj_parser, struct _ojParser, p);
 
-  init_introspect_parser(p);
+  Check_Type(ropts, T_HASH);
+  init_introspect_parser(p, ropts);
 
-  rb_gc_register_address(&oj_parser);
+  // This locks the object in memory and is never recovered. Best to let the
+  // mark function handle it.
+  // rb_gc_register_address(&oj_parser);
 
   return oj_parser;
 }
@@ -145,7 +172,7 @@ static VALUE rb_get_default_introspect_parser() {
   if(RTEST(thread_parser))
     return thread_parser;
 
-  thread_parser = rb_new_introspect_parser();
+  thread_parser = rb_new_introspect_parser(Qnil, Qnil);
   rb_funcall(current_thread, rb_intern("[]="), 2, rb_str_new_literal("oj_introspect_parser"), thread_parser);
 
   return thread_parser;
@@ -157,5 +184,5 @@ void Init_introspect_ext() {
   VALUE introspection_class = rb_define_class_under(oj_module, "Introspect", rb_cObject);
 
   rb_define_singleton_method(parser_module, "introspect", rb_get_default_introspect_parser, 0);
-  rb_define_singleton_method(introspection_class, "new", rb_new_introspect_parser, 0);
+  rb_define_singleton_method(introspection_class, "new", rb_new_introspect_parser, 1);
 }
