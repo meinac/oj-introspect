@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "oj/introspect"
+require "json"
+require "benchmark/ips"
+
+TEST_JSON = '{ "foo": "bar" }'
+
+INTROSPECT_PARSER = Oj::Parser.introspect
+USUAL_PARSER = Oj::Parser.usual
+
+Benchmark.ips do |b|
+  b.report("Introspected") do
+    INTROSPECT_PARSER.parse(TEST_JSON)
+  end
+
+  b.report("Oj usual") do
+    USUAL_PARSER.parse(TEST_JSON)
+  end
+
+  b.report("stdlib") do
+    JSON.parse(TEST_JSON)
+  end
+
+  b.compare!
+end
