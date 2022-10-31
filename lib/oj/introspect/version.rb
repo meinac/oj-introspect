@@ -1,5 +1,5 @@
 module Oj
-  module Introspect
+  class Introspect
     VERSION = "0.1.0"
   end
 end

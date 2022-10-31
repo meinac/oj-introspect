@@ -124,7 +124,7 @@ VALUE oj_get_parser_introspect() {
   return oj_parser;
 }
 
-static VALUE rb_get_parser_introspect() {
+static VALUE rb_new_introspect_parser() {
   VALUE oj_parser = oj_parser_new();
   struct _ojParser *p;
   Data_Get_Struct(oj_parser, struct _ojParser, p);
@@ -136,9 +136,26 @@ static VALUE rb_get_parser_introspect() {
   return oj_parser;
 }
 
+// This code is neither Ruby Thread safe nor Ractor safe!
+// I don't really want to write a mutex right now.
+static VALUE rb_get_default_introspect_parser() {
+  VALUE current_thread = rb_funcall(rb_cThread, rb_intern("current"), 0);
+  VALUE thread_parser = rb_funcall(current_thread, rb_intern("[]"), 1, rb_str_new_literal("oj_introspect_parser"));
+
+  if(RTEST(thread_parser))
+    return thread_parser;
+
+  thread_parser = rb_new_introspect_parser();
+  rb_funcall(current_thread, rb_intern("[]="), 2, rb_str_new_literal("oj_introspect_parser"), thread_parser);
+
+  return thread_parser;
+}
+
 void Init_introspect_ext() {
   VALUE oj_module = rb_const_get(rb_cObject, rb_intern("Oj"));
   VALUE parser_module = rb_const_get(oj_module, rb_intern("Parser"));
+  VALUE introspection_class = rb_define_class_under(oj_module, "Introspect", rb_cObject);
 
-  rb_define_singleton_method(parser_module, "introspect", rb_get_parser_introspect, 0);
+  rb_define_singleton_method(parser_module, "introspect", rb_get_default_introspect_parser, 0);
+  rb_define_singleton_method(introspection_class, "new", rb_new_introspect_parser, 0);
 }
