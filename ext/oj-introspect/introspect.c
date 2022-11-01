@@ -6,19 +6,15 @@
 #define BYTE_OFFSETS_STACK_INC_SIZE 256
 
 // Holds the start byte offsets of each JSON object encountered
-typedef struct _byte_offsets {
+struct _byte_offsets {
     int   length;
     int   current;
     long *stack;
-} ByteOffsets;
+};
 
 typedef struct _introspect_S {
   struct _usual usual; // inherit all the attributes from `_usual` struct
-
-  // I'd suggest either making a non-pointer or just adding length, current,
-  // and stack directly to IntrospectDelegate. No need to allocate
-  // separately.
-  ByteOffsets *byte_offsets;
+  struct _byte_offsets byte_offsets; // I think it's better to encapsulate common fields under a namespace
 
   void (*delegated_start)(struct _ojParser *p);
   void (*delegated_free_func)(struct _ojParser *p);
@@ -30,8 +26,7 @@ typedef struct _introspect_S {
 static void dfree(ojParser p) {
   IntrospectDelegate d = (IntrospectDelegate)p->ctx;
 
-  xfree(d->byte_offsets->stack);
-  xfree(d->byte_offsets);
+  xfree(d->byte_offsets.stack);
   d->delegated_free_func(p);
 }
 
@@ -40,27 +35,27 @@ static void start(ojParser p) {
 
     d->delegated_start(p);
     // Reset to zero so the parser and delegate can be reused.
-    d->byte_offsets->current = 0;
+    d->byte_offsets.current = 0;
 }
 
 static void ensure_byte_offsets_stack(IntrospectDelegate d) {
-    if (RB_UNLIKELY(d->byte_offsets->current == (d->byte_offsets->length - 1))) {
-        d->byte_offsets->length += BYTE_OFFSETS_STACK_INC_SIZE;
-        REALLOC_N(d->byte_offsets->stack, long, d->byte_offsets->length + BYTE_OFFSETS_STACK_INC_SIZE);
+    if (RB_UNLIKELY(d->byte_offsets.current == (d->byte_offsets.length - 1))) {
+        d->byte_offsets.length += BYTE_OFFSETS_STACK_INC_SIZE;
+        REALLOC_N(d->byte_offsets.stack, long, d->byte_offsets.length + BYTE_OFFSETS_STACK_INC_SIZE);
     }
 }
 
 static long pop(ojParser p) {
     IntrospectDelegate d = (IntrospectDelegate)p->ctx;
 
-    return d->byte_offsets->stack[--d->byte_offsets->current];
+    return d->byte_offsets.stack[--d->byte_offsets.current];
 }
 
 static void push(ojParser p) {
     IntrospectDelegate d = (IntrospectDelegate)p->ctx;
     ensure_byte_offsets_stack(d);
 
-    d->byte_offsets->stack[d->byte_offsets->current++] = p->cur;
+    d->byte_offsets.stack[d->byte_offsets.current++] = p->cur;
 }
 
 static void open_object_introspected(ojParser p) {
@@ -127,10 +122,9 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   f->close_object = close_object_introspected;
 
   // Init stack
-  d->byte_offsets          = ALLOC(ByteOffsets);
-  d->byte_offsets->current = 0;
-  d->byte_offsets->stack   = ALLOC_N(long, BYTE_OFFSETS_STACK_INC_SIZE);
-  d->byte_offsets->length  = BYTE_OFFSETS_STACK_INC_SIZE;
+  d->byte_offsets.current = 0;
+  d->byte_offsets.stack   = ALLOC_N(long, BYTE_OFFSETS_STACK_INC_SIZE);
+  d->byte_offsets.length  = BYTE_OFFSETS_STACK_INC_SIZE;
 
   // Process options.
   oj_parser_set_option(p, ropts);
