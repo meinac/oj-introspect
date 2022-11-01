@@ -16,7 +16,7 @@ typedef struct _introspect_S {
   struct _usual usual; // inherit all the attributes from `_usual` struct
   struct _byte_offsets byte_offsets; // I think it's better to encapsulate common fields under a namespace
 
-  void (*delegated_start)(struct _ojParser *p);
+  void (*delegated_start_func)(struct _ojParser *p);
   void (*delegated_free_func)(struct _ojParser *p);
   void (*delegated_open_object_func)(struct _ojParser *p);
   void (*delegated_open_object_key_func)(struct _ojParser *p);
@@ -33,7 +33,7 @@ static void dfree(ojParser p) {
 static void start(ojParser p) {
     IntrospectDelegate d = (IntrospectDelegate)p->ctx;
 
-    d->delegated_start(p);
+    d->delegated_start_func(p);
     // Reset to zero so the parser and delegate can be reused.
     d->byte_offsets.current = 0;
 }
@@ -97,7 +97,7 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   d->delegated_free_func = p->free;
   p->free = &dfree;
 
-  d->delegated_start = p->start;
+  d->delegated_start_func = p->start;
   p->start = start;
 
   // We are cheating with the mark, free, and options functions. Since struct
