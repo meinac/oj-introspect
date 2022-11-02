@@ -6,9 +6,9 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Mehmet Emin INAC"]
   spec.email         = ["mehmetemininac@gmail.com"]
 
-  spec.summary       = "..."
-  spec.description   = "..."
-  # spec.homepage      = "..."
+  spec.summary       = "Oj introspect parser."
+  spec.description   = "Embeds start and end byte offsets of JSON objects into generated Ruby hashes."
+  spec.homepage      = "https://github.com/meinac/oj-introspect"
   spec.license       = "MIT"
   spec.required_ruby_version = Gem::Requirement.new(">= 2.3.0")
 
