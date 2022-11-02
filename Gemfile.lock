@@ -1,8 +1,8 @@
 PATH
   remote: .
   specs:
-    oj-introspect (0.1.0)
-      oj (~> 3.13)
+    oj-introspect (0.2.0)
+      oj (>= 3.13.22)
 
 GEM
   remote: https://rubygems.org/
