@@ -16,16 +16,22 @@ typedef struct _introspect_S {
   struct _usual usual; // inherit all the attributes from `_usual` struct
   struct _byte_offsets byte_offsets; // I think it's better to encapsulate common fields under a namespace
 
+  char *filter;
+  bool introspect;
+
   void (*delegated_start_func)(struct _ojParser *p);
   void (*delegated_free_func)(struct _ojParser *p);
+  VALUE (*delegated_option_func)(struct _ojParser *p, const char *key, VALUE value);
   void (*delegated_open_object_func)(struct _ojParser *p);
   void (*delegated_open_object_key_func)(struct _ojParser *p);
+  void (*delegated_open_array_key_func)(struct _ojParser *p);
   void (*delegated_close_object_func)(struct _ojParser *p);
-} *IntrospectDelegate;
+} * IntrospectDelegate;
 
 static void dfree(ojParser p) {
   IntrospectDelegate d = (IntrospectDelegate)p->ctx;
 
+  if(d->filter != NULL) xfree(d->filter);
   xfree(d->byte_offsets.stack);
   d->delegated_free_func(p);
 }
@@ -36,6 +42,31 @@ static void start(ojParser p) {
     d->delegated_start_func(p);
     // Reset to zero so the parser and delegate can be reused.
     d->byte_offsets.current = 0;
+
+    /*
+    * If the `filter` is provided we will start introspecting later
+    * once we encounter with the key provided.
+    */
+    d->introspect = (d->filter == NULL);
+}
+
+static void copy_ruby_str(char **target, VALUE source) {
+  size_t len = RSTRING_LEN(source);
+  *target = ALLOC_N(char, len + 1);
+  memcpy(*target, RSTRING_PTR(source), len);
+  (*target)[len] = '\0'; // Parantheses are important as it means => (*target + sizeof(char) * len)
+}
+
+static VALUE option(ojParser p, const char *key, VALUE value) {
+  IntrospectDelegate d = (IntrospectDelegate)p->ctx;
+
+  if(strcmp(key, "filter=") == 0) {
+    copy_ruby_str(&d->filter, value); // We need to copy the value as GC can free it later.
+
+    return Qtrue;
+  }
+
+  return d->delegated_option_func(p, key, value);
 }
 
 static void ensure_byte_offsets_stack(IntrospectDelegate d) {
@@ -65,15 +96,55 @@ static void open_object_introspected(ojParser p) {
   d->delegated_open_object_func(p);
 }
 
+static char * previously_inserted_key(IntrospectDelegate d) {
+  Key key = (d->usual.ktail - 1);
+
+  return ((size_t)key->len < sizeof(key->buf)) ? key->buf : key->key;
+}
+
+static bool should_switch_introspection(IntrospectDelegate d) {
+  return strcmp(d->filter, previously_inserted_key(d)) == 0;
+}
+
+/*
+* WHEN there is a filter
+* AND
+*     WHEN the introspection is disabled
+*     AND the last inserted key matches the filter
+*     THEN enable introspection
+*   OR
+*     WHEN the introspection is enabled
+*     AND the last inserted key matches the filter
+*     THEN disable introspection
+*/
+static void switch_introspection(IntrospectDelegate d) {
+  if(d->filter == NULL) return;
+
+  d->introspect = should_switch_introspection(d) != d->introspect; // a XOR b
+}
+
 static void open_object_key_introspected(ojParser p) {
   push(p);
 
   IntrospectDelegate d = (IntrospectDelegate)p->ctx;
   d->delegated_open_object_key_func(p);
+
+  if(!d->introspect) switch_introspection(d);
+}
+
+static void open_array_key_introspected(ojParser p) {
+  IntrospectDelegate d = (IntrospectDelegate)p->ctx;
+  d->delegated_open_array_key_func(p);
+
+  if(!d->introspect) switch_introspection(d);
 }
 
 static void set_introspection_values(ojParser p) {
     IntrospectDelegate d = (IntrospectDelegate)p->ctx;
+
+    if(!d->introspect) return;
+
+    switch_introspection(d);
 
     volatile VALUE obj = rb_hash_new();
     rb_hash_aset(obj, ID2SYM(rb_intern("start_byte")), INT2FIX(pop(p)));
@@ -100,6 +171,9 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   d->delegated_start_func = p->start;
   p->start = start;
 
+  d->delegated_option_func = p->option;
+  p->option = option;
+
   // We are cheating with the mark, free, and options functions. Since struct
   // _usual is the first member of struct _introspect the cast to Usual in the
   // usual.c mark() function should still work just fine.
@@ -117,7 +191,9 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   f->close_object = close_object_introspected;
 
   f = &p->funcs[OBJECT_FUN];
+  d->delegated_open_array_key_func = f->open_array;
   d->delegated_open_object_key_func = f->open_object;
+  f->open_array = open_array_key_introspected;
   f->open_object  = open_object_key_introspected;
   f->close_object = close_object_introspected;
 
@@ -125,6 +201,8 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   d->byte_offsets.current = 0;
   d->byte_offsets.stack   = ALLOC_N(long, BYTE_OFFSETS_STACK_INC_SIZE);
   d->byte_offsets.length  = BYTE_OFFSETS_STACK_INC_SIZE;
+
+  d->filter = NULL;
 
   // Process options.
   oj_parser_set_option(p, ropts);
