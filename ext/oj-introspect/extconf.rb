@@ -1,9 +1,11 @@
 require "mkmf"
-require "bundler"
+require "pathname"
+require "oj"
 
-oj_gemspec = Bundler.definition.specs.find { _1.name == "oj" }
+oj_version_file = Oj.const_source_location(:VERSION).first
+oj_version_file_path = Pathname.new(oj_version_file)
 
-OJ_HEADERS  = oj_gemspec.full_gem_path + "/ext/oj"
+OJ_HEADERS = oj_version_file_path.join('..', '..', '..', 'ext', 'oj').to_s
 
 dir_config('oj', [OJ_HEADERS], [])
 
