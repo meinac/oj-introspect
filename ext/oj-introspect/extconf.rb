@@ -9,4 +9,4 @@ OJ_HEADERS = oj_version_file_path.join('..', '..', '..', 'ext', 'oj').to_s
 
 dir_config('oj', [OJ_HEADERS], [])
 
-create_makefile("oj-introspect/introspect_ext")
+create_makefile("oj/introspect/introspect_ext")
