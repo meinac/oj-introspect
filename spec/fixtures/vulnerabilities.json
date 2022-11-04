@@ -1,0 +1,74 @@
+{
+    "schema" : "https://gitlab.com/gitlab-org/security-products/security-report-schemas/-/raw/v14.0.0/dist/sast-report-format.json",
+    "version" : "14.0.0",
+    "vulnerabilities": [
+        {
+            "category" : "sast",
+            "severity" : "Low",
+            "name" : "Name of the vulnerability",
+            "message" : "Message...",
+            "description" : "Description of the vulnerability",
+            "id" : "b1cca3d4-85cd-450e-83c6-988cb31bb645",
+            "identifiers" : [
+                {
+                    "name" : "CVE-XXXX",
+                    "type" : "CVE",
+                    "value" : "XXXX"
+                }
+            ],
+            "location" : {
+                "file" : "file_name.rb",
+                "start_line" : 0
+            },
+            "links" : [
+                {
+                    "name" : "Self URL",
+                    "url" : "https://github.com/meinac/oj-introspect"
+                }
+            ],
+            "scanner" : {
+                "id" : "Test-scanner",
+                "name" : "Test scanner"
+            },
+            "solution" : "Text to explain solution\n Which can contain a new line sequnce",
+            "details": {
+                "source": {
+                    "name": "source-code",
+                    "type": "text",
+                    "value": "foo"
+                },
+                "another-thing": {
+                    "name": "zoo",
+                    "type": "url",
+                    "href": "https://example.com"
+                }
+            }
+        }
+    ],
+    "remediations": [
+        {
+            "fixes": [
+                {
+                    "id": "b1cca3d4-85cd-450e-83c6-988cb31bb645"
+                }
+            ],
+            "summary": "Test diff",
+            "diff": "Zm9v\n"
+        }
+    ],
+    "scan" : {
+        "start_time" : "2020-08-24T07:30:25",
+        "end_time" : "2020-08-24T07:54:47",
+        "status" : "success",
+        "type" : "sast",
+        "scanner" : {
+            "id" : "Test-scanner",
+            "name" : "Test scanner",
+            "url" : "https://gitlab.com",
+            "version" : "1.0",
+            "vendor" : {
+                "name" : "GitLab"
+            }
+        }
+    }
+}

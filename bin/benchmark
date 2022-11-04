@@ -5,14 +5,19 @@ require "oj/introspect"
 require "json"
 require "benchmark/ips"
 
-TEST_JSON = '{ "foo": "bar" }'
+TEST_JSON = File.read("./spec/fixtures/vulnerabilities.json")
 
 INTROSPECT_PARSER = Oj::Parser.introspect
+FILTERED_INTROSPECT_PARSER = Oj::Introspect.new(filter: "remediations")
 USUAL_PARSER = Oj::Parser.usual
 
 Benchmark.ips do |b|
-  b.report("Introspected") do
+  b.report("Introspect") do
     INTROSPECT_PARSER.parse(TEST_JSON)
+  end
+
+  b.report("Filtered introspect") do
+    FILTERED_INTROSPECT_PARSER.parse(TEST_JSON)
   end
 
   b.report("Oj usual") do
