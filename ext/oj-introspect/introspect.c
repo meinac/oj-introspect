@@ -61,6 +61,7 @@ static VALUE option(ojParser p, const char *key, VALUE value) {
   IntrospectDelegate d = (IntrospectDelegate)p->ctx;
 
   if(strcmp(key, "filter=") == 0) {
+    Check_Type(value, T_STRING);
     copy_ruby_str(&d->filter, value); // We need to copy the value as GC can free it later.
 
     return Qtrue;
