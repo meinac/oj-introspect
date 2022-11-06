@@ -209,18 +209,6 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   oj_parser_set_option(p, ropts);
 }
 
-VALUE oj_get_parser_introspect() {
-  VALUE oj_parser = oj_parser_new();
-  struct _ojParser *p;
-  Data_Get_Struct(oj_parser, struct _ojParser, p);
-
-  init_introspect_parser(p, Qnil);
-
-  rb_gc_register_address(&oj_parser);
-
-  return oj_parser;
-}
-
 static VALUE rb_new_introspect_parser(int argc, VALUE *argv, VALUE self) {
   rb_check_arity(argc, 0, 1);
 
