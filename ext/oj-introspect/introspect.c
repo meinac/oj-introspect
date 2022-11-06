@@ -26,6 +26,8 @@ typedef struct _introspect_S {
   void (*delegated_open_object_key_func)(struct _ojParser *p);
   void (*delegated_open_array_key_func)(struct _ojParser *p);
   void (*delegated_close_object_func)(struct _ojParser *p);
+  void (*delegated_close_object_key_func)(struct _ojParser *p);
+  void (*delegated_close_array_key_func)(struct _ojParser *p);
 } * IntrospectDelegate;
 
 static void dfree(ojParser p) {
@@ -145,8 +147,6 @@ static void set_introspection_values(ojParser p) {
 
     if(!d->introspect) return;
 
-    switch_introspection(d);
-
     volatile VALUE obj = rb_hash_new();
     rb_hash_aset(obj, ID2SYM(rb_intern("start_byte")), INT2FIX(pop(p)));
     rb_hash_aset(obj, ID2SYM(rb_intern("end_byte")), INT2FIX(p->cur));
@@ -158,6 +158,24 @@ static void close_object_introspected(ojParser p) {
   d->delegated_close_object_func(p);
 
   set_introspection_values(p);
+}
+
+// We switch introspection off only for object and array keys.
+static void close_object_key_introspected(ojParser p) {
+  IntrospectDelegate d = (IntrospectDelegate)p->ctx;
+  d->delegated_close_object_func(p);
+
+  if(d->introspect) {
+    set_introspection_values(p);
+    switch_introspection(d);
+  }
+}
+
+static void close_array_key_introspected(ojParser p) {
+  IntrospectDelegate d = (IntrospectDelegate)p->ctx;
+  d->delegated_close_array_key_func(p);
+
+  if(d->introspect) switch_introspection(d);
 }
 
 static void init_introspect_parser(ojParser p, VALUE ropts) {
@@ -175,12 +193,7 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   d->delegated_option_func = p->option;
   p->option = option;
 
-  // We are cheating with the mark, free, and options functions. Since struct
-  // _usual is the first member of struct _introspect the cast to Usual in the
-  // usual.c mark() function should still work just fine.
-
-  // PCO - do you need the location of sub-objects and arrays or just top
-  // level objects?
+  // Wrap original functions to collect byte offsets
   Funcs f = &p->funcs[TOP_FUN];
   d->delegated_open_object_func = f->open_object;
   d->delegated_close_object_func = f->close_object;
@@ -194,9 +207,12 @@ static void init_introspect_parser(ojParser p, VALUE ropts) {
   f = &p->funcs[OBJECT_FUN];
   d->delegated_open_array_key_func = f->open_array;
   d->delegated_open_object_key_func = f->open_object;
+  d->delegated_close_array_key_func = f->close_array;
+  d->delegated_close_object_key_func = f->close_object;
   f->open_array = open_array_key_introspected;
   f->open_object  = open_object_key_introspected;
-  f->close_object = close_object_introspected;
+  f->close_array = close_array_key_introspected;
+  f->close_object = close_object_key_introspected;
 
   // Init stack
   d->byte_offsets.current = 0;

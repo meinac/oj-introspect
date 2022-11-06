@@ -22,7 +22,8 @@ RSpec.describe Oj::Introspect do
           expect(parsed_data[:__oj_introspection]).to be_nil
           expect(parsed_data["scan"][:__oj_introspection]).to be_nil
           expect(parsed_data["vulnerabilities"][0][:__oj_introspection]).to be_nil
-          expect(parsed_data["remediations"][0][:__oj_introspection]).to eq({ start_byte: 1601, end_byte: 1815 })
+          expect(parsed_data["remediations"][0][:__oj_introspection]).to eq({ start_byte: 1601, end_byte: 1602 })
+          expect(parsed_data["remediations"][1][:__oj_introspection]).to eq({ start_byte: 1613, end_byte: 1827 })
         end
       end
 
