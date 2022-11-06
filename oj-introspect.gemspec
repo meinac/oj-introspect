@@ -24,5 +24,5 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.extensions    = ["ext/oj-introspect/extconf.rb"]
 
-  spec.add_dependency "oj", ">=3.13.22"
+  spec.add_dependency "oj", ">=3.13.23"
 end
