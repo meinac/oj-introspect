@@ -245,10 +245,6 @@ static VALUE rb_new_introspect_parser(int argc, VALUE *argv, VALUE self) {
 
   init_introspect_parser(p, options);
 
-  // This locks the object in memory and is never recovered. Best to let the
-  // mark function handle it.
-  // rb_gc_register_address(&oj_parser);
-
   return oj_parser;
 }
 
