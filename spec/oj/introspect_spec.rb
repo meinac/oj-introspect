@@ -17,6 +17,18 @@ RSpec.describe Oj::Introspect do
       expect(parsed_data["top-level-array"][0]["array-object"][:__oj_introspection]).to eq({ start_byte: 81, end_byte: 135 })
     end
 
+    context "using the same parser multiple times" do
+      subject(:second_parsed_data) { parser.parse("{}") }
+
+      before do
+        parsed_data # run parser
+      end
+
+      it "does not leak information from previous parse" do
+        expect(second_parsed_data).to eq({ __oj_introspection: { start_byte: 0, end_byte: 1 } })
+      end
+    end
+
     context "when the `filter` option is provided" do
       let(:parser) { described_class.new(filter: filter) }
       let(:test_json) { File.read("./spec/fixtures/vulnerabilities.json") }
