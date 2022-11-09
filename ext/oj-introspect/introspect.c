@@ -53,10 +53,11 @@ static void start(ojParser p) {
 }
 
 static void copy_ruby_str(char **target, VALUE source) {
-  size_t len = RSTRING_LEN(source);
+  const char *ruby_str = StringValueCStr(source);
+  size_t len = strlen(ruby_str);
+
   *target = ALLOC_N(char, len + 1);
-  memcpy(*target, RSTRING_PTR(source), len);
-  (*target)[len] = '\0'; // Parantheses are important as it means => (*target + sizeof(char) * len)
+  strncpy(*target, ruby_str, len + 1);
 }
 
 static VALUE option(ojParser p, const char *key, VALUE value) {

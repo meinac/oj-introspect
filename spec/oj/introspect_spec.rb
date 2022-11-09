@@ -15,6 +15,14 @@ RSpec.describe Oj::Introspect do
       let(:parser) { described_class.new(filter: filter) }
       let(:test_json) { File.read("./spec/fixtures/vulnerabilities.json") }
 
+      context "when the given filter contains null byte" do
+        let(:filter) { "test\x00hi" }
+
+        it "raises ArgumentError" do
+          expect { parsed_data }.to raise_error(ArgumentError)
+        end
+      end
+
       context "when the filtered property is an array" do
         let(:filter) { "remediations" }
 
