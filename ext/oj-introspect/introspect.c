@@ -30,6 +30,10 @@ typedef struct _introspect_S {
   void (*delegated_close_array_key_func)(struct _ojParser *p);
 } * IntrospectDelegate;
 
+static VALUE introspection_key;
+static VALUE start_byte_key;
+static VALUE end_byte_key;
+
 static void dfree(ojParser p) {
   IntrospectDelegate d = (IntrospectDelegate)p->ctx;
 
@@ -149,9 +153,9 @@ static void set_introspection_values(ojParser p) {
     if(!d->introspect) return;
 
     volatile VALUE obj = rb_hash_new();
-    rb_hash_aset(obj, ID2SYM(rb_intern("start_byte")), INT2FIX(pop(p)));
-    rb_hash_aset(obj, ID2SYM(rb_intern("end_byte")), INT2FIX(p->cur));
-    rb_hash_aset(*(d->usual.vtail - 1), ID2SYM(rb_intern("__oj_introspection")), obj);
+    rb_hash_aset(obj, start_byte_key, INT2FIX(pop(p)));
+    rb_hash_aset(obj, end_byte_key, INT2FIX(p->cur));
+    rb_hash_aset(*(d->usual.vtail - 1), introspection_key, obj);
 }
 
 static void close_object_introspected(ojParser p) {
@@ -269,6 +273,14 @@ void Init_introspect_ext() {
   VALUE parser_module = rb_const_get(oj_module, rb_intern("Parser"));
   VALUE introspection_class = rb_define_class_under(oj_module, "Introspect", rb_cObject);
 
+  introspection_key = ID2SYM(rb_intern("__oj_introspection"));
+  rb_gc_register_address(&introspection_key);
+  start_byte_key = ID2SYM(rb_intern("start_byte"));
+  rb_gc_register_address(&start_byte_key);
+  end_byte_key = ID2SYM(rb_intern("end_byte"));
+  rb_gc_register_address(&end_byte_key);
+
+  rb_const_set(introspection_class, rb_intern("KEY"), introspection_key);
   rb_define_singleton_method(parser_module, "introspect", rb_get_default_introspect_parser, 0);
   rb_define_singleton_method(introspection_class, "new", rb_new_introspect_parser, -1);
 }

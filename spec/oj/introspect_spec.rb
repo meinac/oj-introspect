@@ -1,4 +1,10 @@
 RSpec.describe Oj::Introspect do
+  describe "::KEY" do
+    subject { described_class::KEY }
+
+    it { is_expected.to eq(:__oj_introspection) }
+  end
+
   describe "#parse" do
     let(:parser) { described_class.new }
     let(:test_json) { File.read("./spec/fixtures/test.json") }
