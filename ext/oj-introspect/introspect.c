@@ -181,7 +181,7 @@ static void close_array_key_introspected(ojParser p) {
 static void init_introspect_parser(ojParser p, VALUE ropts) {
   IntrospectDelegate d = ALLOC(struct _introspect_S);
 
-  oj_init_usual(p, (Usual)d);
+  oj_init_usual(p, &d->usual);
 
   // now function mangling...
   d->delegated_free_func = p->free;
