@@ -18,7 +18,7 @@ if cc_version.match?(/clang/i)
   end
 
   # Needed for Ruby 3.2 ABI check: https://github.com/ruby/ruby/pull/5474
-  if RUBY_VERSION >= "3.2"
+  if RUBY_VERSION >= "3.2" && RUBY_PATCHLEVEL < 0
     $LDFLAGS << " -Wl,-exported_symbol,_ruby_abi_version"
   end
 end
