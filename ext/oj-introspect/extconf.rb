@@ -8,7 +8,7 @@ oj_version_file_path = Pathname.new(oj_version_file)
 OJ_HEADERS = oj_version_file_path.join('..', '..', '..', 'ext', 'oj').to_s
 
 cc_version = `#{RbConfig.expand("$(CC) --version".dup)}`
-if cc_version.match?(/clang/i)
+if cc_version.match?(/clang/i) && RUBY_PLATFORM =~ /darwin/
   # Ignore symbols loaded from Oj in case Ruby is compiled without
   # "-Wl,-undefined,dynamic_lookup" (related to https://bugs.ruby-lang.org/issues/19005)
   symfile = File.join(__dir__, 'oj.sym')
