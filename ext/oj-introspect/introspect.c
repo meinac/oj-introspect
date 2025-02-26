@@ -246,7 +246,7 @@ static VALUE rb_new_introspect_parser(int argc, VALUE *argv, VALUE self) {
 
   VALUE oj_parser = oj_parser_new();
   struct _ojParser *p;
-  Data_Get_Struct(oj_parser, struct _ojParser, p);
+  TypedData_Get_Struct(oj_parser, struct _ojParser, &oj_parser_type, p);
 
   init_introspect_parser(p, options);
 
