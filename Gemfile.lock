@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    oj-introspect (0.7.2)
+    oj-introspect (0.8.0)
       oj (>= 3.16.10)
 
 GEM
